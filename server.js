@@ -21,12 +21,12 @@ const loopQuestion = {
         "Add a Department", // completed
         "Add a Role", // completed
         "Add an Employee", // completed
-        "Update an Employee Role",
+        "Update an Employee Role", 
         "Update an Employee's Department",
         "Update an Employee's Manager",
-        "Delete a Role",
+        "Delete a Role", // completed
         "Delete a Department", // completed
-        "Delete an Employee",
+        "Delete an Employee", // completed
         "View Employees by Department", 
         "View employees by Manager",         
         "View Total Utilized Budget of a Department"
@@ -97,11 +97,11 @@ async function promptLoopQuestion() {
                 }
 
                 const delDeptData = await inquirer.prompt(delDeptQuestion);
-                const arr = delDeptData.deptToDelete.replace(")","").split(" (ID:");
-                const deleteId = arr[arr.length - 1];
+                const delArray = delDeptData.deptToDelete.replace(")","").split(" (ID:");
+                const deleteId = delArray[delArray.length - 1];
                 const sql = `DELETE FROM department WHERE id = ?`; // Note: better use `id` instead of `name` as there could be a name duplicate
                 const [result] = await db.query(sql, [deleteId]);
-                console.log(`${delDeptData.deptToDelete} has successfully been deleted from the department table.`);
+                console.log(`"${delArray[0]}" has successfully been deleted from the department table.`);
             } 
             
             catch(error) {
@@ -112,11 +112,53 @@ async function promptLoopQuestion() {
         else if(response.loopQuestion === "Delete a Role") {
             
             try {
+                const [roleList] = await db.execute(`SELECT * FROM role`);
+                const refineRoleList = roleList.map((row) => `${row.title} (ID:${row.id})`)
                 
+                const delRoleQuestion = {
+                    type: "list",
+                    message: "Which role do you want to delete?",
+                    name: "roleToDelete",
+                    choices: refineRoleList
+                }
+
+                const delRoleData = await inquirer.prompt(delRoleQuestion);
+                const delArray = delRoleData.roleToDelete.replace(")","").split(" (ID:");
+                const delRoleId = delArray[delArray.length - 1];
+                const sql = `DELETE FROM role WHERE id = ?`
+                const [result] = await db.query(sql, [delRoleId]);
+                console.log(`"${delArray[0]}" has successfully been deleted from the role table.`)
             }
 
             catch(error) {
                 console.error("Delete a Role (ERROR) => ", error);
+            }
+        }
+
+        else if(response.loopQuestion === "Delete an Employee") {
+            
+            try {
+                const [employeeList] = await db.execute(`SELECT * FROM employee`)
+                console.log(employeeList);
+                const refineEmployeeList = employeeList.map((row) => `${row.first_name} ${row.last_name} (ID:${row.id})`)
+                
+                const delEmployeeQuestion = {
+                    type: "list",
+                    message: "Which employee do you want to delete?",
+                    name: "delEmployee",
+                    choices: refineEmployeeList
+                }
+
+                const delEmployeeData = await inquirer.prompt(delEmployeeQuestion);
+                const delArray = delEmployeeData.delEmployee.replace(")","").split(" (ID:");
+                const delEmployeeId = delArray[delArray.length -1];
+                const sql = `DELETE FROM employee WHERE id = ?`;
+                const [result] = await db.query(sql,[delEmployeeId]);
+                console.log(`"${delArray[0]}" has successfully been deleted from the employee table."`)
+            }
+
+            catch(error) {
+                console.error("Delete an Employee (ERROR) => ", error);
             }
         }
 
@@ -176,6 +218,13 @@ async function promptLoopQuestion() {
             };
         }
 
+        else if(response.loopQuestion === "Update an Employee Role") {
+
+            
+
+            db.query(`UPDATE role SET name = "" where id = ?`)
+        }
+
         // else if(response.loopQuestion == "View Employees by Department") {
         //     const employeeByDeptData = await inquirer.prompt(employeeByDeptQuestion);
 
@@ -183,20 +232,6 @@ async function promptLoopQuestion() {
         //     // const sql = `SELECT * FROM employee JOIN department ON employee.department_id = department.id`
             
         // }
-
-
-
-
-        // TODO
-
-        // else if(response.loopQuestion === "Update an Employee Role") {
-        //     const data = {
-
-        //     }
-        //     db.query(`UPDATE role SET name = "" where id = ?`)
-        // }
-
-
 
     }
 }
