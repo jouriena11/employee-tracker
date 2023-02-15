@@ -18,18 +18,15 @@ const loopQuestion = {
         "View All Departments", // completed
         "View All Roles", // completed
         "View All Employees", // completed
+        "View Employees by ...", // completed
         "Add a Department", // completed
         "Add a Role", // completed
         "Add an Employee", // completed
-        "Update an Employee Role", 
-        "Update an Employee's Department",
-        "Update an Employee's Manager",
+        "Update an Employee Role", // completed
         "Delete a Role", // completed
         "Delete a Department", // completed
         "Delete an Employee", // completed
-        "View Employees by Department", 
-        "View employees by Manager",         
-        "View Total Utilized Budget of a Department"
+        "View Total Utilized Budget of a Department" // completed
     ]
 }
 
@@ -48,7 +45,7 @@ async function promptLoopQuestion() {
                 // Note: the commented-out codes below is an alternative table output
                 // const sql = `SELECT employee.id AS ID, employee.first_name AS First_Name, employee.last_name AS Last_Name, role.salary AS Salary, role.title AS Job_Title, department.name AS Department, m.first_name AS Manager_First_Name, m.last_name AS Manager_Last_Name FROM employee INNER JOIN role ON employee.role_id = role.id INNER JOIN department ON role.department_id = department.id LEFT JOIN employee m ON employee.manager_id = m.id`;
                 const sql = `SELECT employee.id AS ID, employee.first_name AS First_Name, employee.last_name AS Last_Name, role.salary AS Salary, role.title AS Job_Title, department.name AS Department, CONCAT_WS(" ", m.first_name, m.last_name) AS Manager FROM employee INNER JOIN role ON employee.role_id = role.id INNER JOIN department ON role.department_id = department.id LEFT JOIN employee m ON employee.manager_id = m.id`;
-                const [rows, fields] = await db.execute(sql); // reference to the library's documentation on Using Promise Wrapper
+                const [rows] = await db.execute(sql); // reference to the library's documentation on Using Promise Wrapper
                 console.table(rows)
             } 
             
@@ -80,6 +77,62 @@ async function promptLoopQuestion() {
             
             catch(error) {
                 console.error("View All Departments (ERROR) => ", error);
+            }
+        }
+
+        else if(response.loopQuestion === "View Employees by ...") {
+            
+            try {
+                const sortEmployeeQuestion = {
+                    type: "list",
+                    message: "Sort the employee table by...",
+                    name: "sortEmployee",
+                    choices: [
+                        "Employee ID",
+                        "First Name", 
+                        "Last Name",
+                        "Role",
+                        "Department",
+                        "Salary",
+                        "Manager"
+                    ]
+                }
+
+                const sortDataObj = await inquirer.prompt(sortEmployeeQuestion);
+                const sortData = sortDataObj.sortEmployee;
+                const employeeTableSQL = `SELECT employee.id AS ID, employee.first_name AS First_Name, employee.last_name AS Last_Name, role.salary AS Salary, role.title AS Job_Title, department.name AS Department, CONCAT_WS(" ", m.first_name, m.last_name) AS Manager FROM employee INNER JOIN role ON employee.role_id = role.id INNER JOIN department ON role.department_id = department.id LEFT JOIN employee m ON employee.manager_id = m.id`;
+
+                const sqlKey = () => { // Note: an alias can be used instead of the original column name
+                    if(sortData === "Employee ID"){
+                        return "ID";
+                    } else if(sortData === "First Name") {
+                        return "First_Name";
+                    } else if(sortData === "Last Name") {
+                        return "Last_Name";
+                    } else if(sortData === "Role") {
+                        return "Job_Title";
+                    } else if(sortData === "Department") {
+                        return "Department";
+                    } else if(sortData === "Salary") {
+                        return "Salary";
+                    } else {
+                        return "Manager";
+                    }
+                }
+
+                const sortSQL = ` ORDER BY ${sqlKey()}`
+
+                const sql = employeeTableSQL.concat(sortSQL)
+
+                // console.log(sql)
+
+                const [rows] = await db.execute(sql);
+                console.table(rows);
+
+            }
+
+            catch {
+                console.error("View Employees by ... (ERROR) => ", error);
             }
         }
         
@@ -136,10 +189,9 @@ async function promptLoopQuestion() {
         }
 
         else if(response.loopQuestion === "Delete an Employee") {
-            
+
             try {
                 const [employeeList] = await db.execute(`SELECT * FROM employee`)
-                console.log(employeeList);
                 const refineEmployeeList = employeeList.map((row) => `${row.first_name} ${row.last_name} (ID:${row.id})`)
                 
                 const delEmployeeQuestion = {
@@ -186,7 +238,8 @@ async function promptLoopQuestion() {
                 const roleData = await inquirer.prompt(roleQuestions);
                 const arr = roleData.roleDepartment.replace(")","").split(" (ID:");
                 const role = new Role(-1, roleData.roleName, roleData.salary, arr[1], arr[0]);
-                const [result] = await db.query(`INSERT INTO role (title, department_id, salary) VALUES (?, ?, ?)`, [role.roleName, role.dept.id, roleData.salary]);
+                const reformatRoleName = role.getRole();
+                const [result] = await db.query(`INSERT INTO role (title, department_id, salary) VALUES (?, ?, ?)`, [reformatRoleName, role.dept.id, roleData.salary]);
                 console.log(`${role.roleName} role has been added to the database.`);
             } 
             
@@ -219,20 +272,61 @@ async function promptLoopQuestion() {
         }
 
         else if(response.loopQuestion === "Update an Employee Role") {
-
             
+            try {
+                const [employeeList] = await db.execute(`SELECT * FROM employee`);
+                const refineEmployeeList = employeeList.map((row) => `${row.first_name} ${row.last_name} (ID:${row.id})`)
+                const [roleList] = await db.execute(`SELECT * FROM role`)
+                const refineRowList = roleList.map((row) => `${row.title} (ID:${row.id})`)
 
-            db.query(`UPDATE role SET name = "" where id = ?`)
+                console.log(refineRowList)
+                
+                const updateRoleQuestions = [
+                    {
+                        type: "list",
+                        message: "which employee do you wish to update?",
+                        name: "employeeToUpdate",
+                        choices: refineEmployeeList
+                    },
+                    {
+                        type: "list",
+                        message: "What is the employee's new role?",
+                        name: "employeeNewRole",
+                        choices: refineRowList
+                    }
+                ]
+
+                const updateEmployeeData = await inquirer.prompt(updateRoleQuestions);
+                const updateEmployeeArr = updateEmployeeData.employeeToUpdate.replace(")","").split(" (ID:");
+                const updateRoleArr = updateEmployeeData.employeeNewRole.replace(")","").split(" (ID:");
+                const updateEmployeeId = updateEmployeeArr[updateEmployeeArr.length - 1];
+                const updateRoleId = updateRoleArr[updateRoleArr.length -1];
+                    
+                const sql = `UPDATE employee SET role_id = "${updateRoleId}" where id = ?`;
+                const [result] = await db.query(sql, updateEmployeeId)
+                console.log(`${updateEmployeeArr[0]}'s role has been updated to "${updateRoleArr[0]}."`)
+            }
+            
+            catch(error) {
+                console.error("Update an Employee Role (ERROR) => ", error)
+            }
         }
 
-        // else if(response.loopQuestion == "View Employees by Department") {
-        //     const employeeByDeptData = await inquirer.prompt(employeeByDeptQuestion);
+        else if(response.loopQuestion === "View Total Utilized Budget of a Department") {
+            try {
+                const deptBudgetTableSQL = `SELECT department.name AS Department, SUM(role.salary) AS Total_Utilized_Budget FROM role INNER JOIN department ON role.department_id = department.id GROUP BY department.name`
+                const [rows] = await db.execute(deptBudgetTableSQL);
+                console.table(rows);
+            }
 
-        //     employeeByDeptData();
-        //     // const sql = `SELECT * FROM employee JOIN department ON employee.department_id = department.id`
-            
-        // }
+            catch(error) {
+                console.error("View Total Utilized Budget of a Department (ERROR) => ", error);
+            }
+        } 
 
+        else {
+            console.log("Please choose what you want to do.")
+        }
     }
 }
 
