@@ -22,7 +22,8 @@ const loopQuestion = {
         "Add a Department", // completed
         "Add a Role", // completed
         "Add an Employee", // completed
-        "Update an Employee Role", // completed
+        "Update an Employee's Role", // completed
+        "Update an Employee's Manager", // completed
         "Delete a Role", // completed
         "Delete a Department", // completed
         "Delete an Employee", // completed
@@ -123,8 +124,6 @@ async function promptLoopQuestion() {
                 const sortSQL = ` ORDER BY ${sqlKey()}`
 
                 const sql = employeeTableSQL.concat(sortSQL)
-
-                // console.log(sql)
 
                 const [rows] = await db.execute(sql);
                 console.table(rows);
@@ -259,7 +258,6 @@ async function promptLoopQuestion() {
                 
                 const newRole = new Role(roleData[1], roleData[0], -1, -1, ''); // dummy value is used in parameter 3,4,5 so that the codes can run. Actual data is retrieved from MySQL database, so the dummy values here have no impact on the actual data.
                 const newEmployee = new Employee(-1, firstName, lastName, newRole, managerData[1]);
-                console.log(newEmployee)
                 const sql = `INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES ("${newEmployee.getFirstName()}", "${newEmployee.getLastName()}", ${newEmployee.role.roleID}, ${newEmployee.managerID})`;
                 
                 const [rows] = await db.execute(sql);
@@ -271,15 +269,51 @@ async function promptLoopQuestion() {
             };
         }
 
-        else if(response.loopQuestion === "Update an Employee Role") {
+        else if(response.loopQuestion === "Update an Employee's Manager") {
+            try {
+                const [employeeList] = await db.execute(`SELECT * FROM employee`);
+                const refineEmployeeList = employeeList.map((row) => `${row.first_name} ${row.last_name} (ID:${row.id})`);
+                const [rowsManager] = await db.execute(`select * from employee where manager_id is null`);
+                const managerList = rowsManager.map((row) => `${row.first_name} ${row.last_name} (ID:${row.id})`);
+                
+                const updateEmployeeManagerQuestion = [
+                    {
+                        type: "list",
+                        message: "Which employee do you want to reassign manager?",
+                        name: "employeeToReassignManager",
+                        choices: refineEmployeeList
+                    },
+                    {
+                        type: "list",
+                        message: "Select a new manager to whom the employee reports.",
+                        name: "newManager",
+                        choices: managerList
+                    }
+                ];
+
+                const updateEmployeeManagerData = await inquirer.prompt(updateEmployeeManagerQuestion);
+                const updateEmployeeArr = updateEmployeeManagerData.employeeToReassignManager.replace(")","").split(" (ID:");
+                const updatedManagerArr = updateEmployeeManagerData.newManager.replace(")","").split(" (ID:");
+                const updateEmployeeId = updateEmployeeArr[1];
+                const updateManagerId = updatedManagerArr[1];
+
+                const sql = `UPDATE employee SET manager_id = "${updateManagerId}" where id = ?`;
+                const [result] = await db.query(sql, updateEmployeeId)
+                console.log(`${updateEmployeeArr[0]}'s manager has been updated to "${updatedManagerArr[0]}."`)
+            }
+
+            catch(error) {
+                console.error("Update an Employee's Manager (ERROR) =>", error)
+            }
+        }
+
+        else if(response.loopQuestion === "Update an Employee's Role") {
             
             try {
                 const [employeeList] = await db.execute(`SELECT * FROM employee`);
                 const refineEmployeeList = employeeList.map((row) => `${row.first_name} ${row.last_name} (ID:${row.id})`)
                 const [roleList] = await db.execute(`SELECT * FROM role`)
                 const refineRowList = roleList.map((row) => `${row.title} (ID:${row.id})`)
-
-                console.log(refineRowList)
                 
                 const updateRoleQuestions = [
                     {
