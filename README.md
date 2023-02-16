@@ -8,7 +8,7 @@ Employee Tracker is a command-line application that allows users to manage emplo
 - delete records from the database, including deleting an employee, a role, and a department
 
 ## **URLs**
-- [Walkthrough Video](https://drive.google.com/file/d/1TX3YbC18DMFhg7uQzBj3wr_7t3DO9lm_/view?usp=sharing)
+- [Walkthrough Video](https://drive.google.com/file/d/1iZjH1nZZguKI6Zu8BHy8pr4eBl--_2a9/view?usp=sharing)
 - [GitHub Repository URL](https://github.com/jouriena11/employee-tracker)
 
 ## **Table of Contents**
