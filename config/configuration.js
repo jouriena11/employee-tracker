@@ -1,7 +1,7 @@
 const dbCredentials = {
     host: 'localhost',
     user: 'root',
-    password: '',
+    password: 'FML4417*(',
     database: 'employee_db'
 }
 

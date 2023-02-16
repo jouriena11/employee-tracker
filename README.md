@@ -37,7 +37,12 @@ npm i
 - console.table v0.10.0 (npm package)
 
 ## **Usage**
-To run this application, enter the following code in a command-line application
+Before running this application, please make sure to do the following first
+- enter your mysql password in config/configuration.js file
+- source schema.sql
+- source seeds.sql
+
+To start running the application, enter the following code at root directory in a command-line application
 ```
 node server.js
 ```
